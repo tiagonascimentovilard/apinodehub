@@ -40,6 +40,7 @@ async function criarUsuario(login,senha,res){
     let sql = "INSERT INTO usuarios (login,hash1,hash2) VALUES ";
     sql += "  ('"+  loginAjuste +"','"+  senhaHash.hash +"','"+  senhaHash.salt +"') ";
     await client.query(sql).then((resp) => {
+      client.end();
       res.status(200).json({message: 'Usuário criado!'});
     }).catch((error) => { 
       res.status(500).json({message: 'erro ao criar usuário!'+error});
@@ -58,6 +59,7 @@ async function criarResponsavel(resp,res){
       let sql = "INSERT INTO responsaveis (nome,telefone,endereco_id) VALUES ";
       sql += " ('"+  resp.nome +"','"+  resp.telefone +"',"+  end_id +")";
       client.query(sql).then((resp) => {
+        client.end();
         res.status(200).json({message: 'Responsável criado!'});
       }).catch((error) => { 
         res.status(500).json({message: 'erro ao criar Responsável!'+error});
@@ -76,6 +78,7 @@ async function criarEmpresa(empr,res){
     sql += " ('"+  empr.nome +"','"+  empr.cnpj +"','"+  empr.descricao +"',"+  empr.responsavel +""
     sql += " ,"+  empr.usuario_id +")";
     await client.query(sql).then((resp) => {
+      client.end();
       res.status(200).json({message: 'empresa criada!'});
     }).catch((error) => { 
       res.status(500).json({message: 'erro ao criar empresa!'+error});
@@ -96,6 +99,7 @@ async function criarLocal(loc,res){
       sql += " ,"+  loc.usuario_id +")";
       console.log(sql)
       client.query(sql).then((resp) => {
+        client.end();
         res.status(200).json({message: 'Local criado!'});
       }).catch((error) => { 
         res.status(500).json({message: 'erro ao criar local!'+error});
@@ -120,6 +124,7 @@ async function salvaEndereco(ender){
       const clientM = new Client(pgAuth);
       clientM.connect();
       return clientM.query('SELECT MAX(id) as id FROM enderecos').then((maxid) => {
+        clientM.end();
         return maxid.rows[0].id;
       });
     });
@@ -137,13 +142,13 @@ async function validaSenhaHash(login,senha,res){
     let sql = "SELECT id, login, hash1, hash2 FROM usuarios  ";
     sql += " WHERE login = '" + loginAjuste + "' ;";
     await client.query(sql).then((resp) => {
+      client.end();
       const usuario = resp.rows;
       if (usuario[0].length === 0){
         res.status(403).json({message: 'Login ou Senha inválida!'});
       }else{
         const validaSenha = validaSenhaHashSha512(senha, usuario[0].hash1, usuario[0].hash2);
         if (validaSenha){
-          console.log(JSON.stringify(usuario));
           const id = parseInt(usuario[0].id);
           const token = jwt.sign({ id }, process.env.SECRET, {
             //expiresIn: 3600 // expires in 1hs
@@ -173,6 +178,7 @@ async function listaEmpresas(usuarioId,res){
     sql += " WHERE e.usuario_id = " + usuarioId + " ";
     sql += " ORDER BY e.nome ASC  "; 
     await client.query(sql).then((resp) => {
+      client.end();
       const empresas = resp.rows;
       if (empresas.length === 0){
         res.status(403).json({message: 'Nenhuma empresa cadastrado.'});
@@ -199,6 +205,7 @@ async function listaLocais(usuarioId,res){
     sql += " ORDER BY l.nome ASC  "; 
     //console.log(sql)
     await client.query(sql).then((resp) => {
+      client.end();
       const locais = resp.rows;
       if (locais.length === 0){
         res.status(403).json({message: 'Nenhuma local cadastrado.'});
@@ -224,6 +231,7 @@ async function listaResponsaveis(usuarioId,res){
     sql += " ORDER BY r.nome ASC  "; 
     await client.query(sql).then((resp) => {
       const responsaveis = resp.rows;
+      client.end();
       if (responsaveis.length === 0){
         res.status(403).json({message: 'Nenhum responsável cadastrado.'});
       }else{
