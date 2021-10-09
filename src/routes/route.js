@@ -11,12 +11,14 @@ module.exports = (app) => {
    app.get('/enderecocep/:cep',verifyJWT, CepController.get);
    app.post('/cadusuario', UsuarioController.post);
    app.get('/loginusuario', UsuarioController.get);
+   app.put('/alteraempresaresp',verifyJWT, ResponsavelController.put);
    app.post('/cadresponsavel',verifyJWT, ResponsavelController.post);
    app.get('/listaresponsaveis',verifyJWT, ResponsavelController.get);
    app.post('/cadempresa',verifyJWT, EmpresaController.post);
    app.get('/listaempresas',verifyJWT, EmpresaController.get);
    app.post('/cadlocal',verifyJWT, LocalController.post);
    app.get('/listalocais',verifyJWT, LocalController.get);
+   app.put('/alteralocalresp',verifyJWT, LocalController.put);
 }
 
 function verifyJWT(req, res, next){

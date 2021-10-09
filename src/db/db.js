@@ -1,4 +1,4 @@
-const { Pool, Client } = require('pg');
+const { Client } = require('pg');
 const pgAuth = require("./pg_auth");
 const crypto = require("crypto");
 //const client = new Client(pgAuth);
@@ -79,6 +79,12 @@ async function criarEmpresa(empr,res){
     sql += " ,"+  empr.usuario_id +")";
     await client.query(sql).then((resp) => {
       client.end();
+      const clientM = new Client(pgAuth);
+      clientM.connect();
+      clientM.query('SELECT MAX(id) as id FROM empresas').then((maxid) => {
+        clientM.end();
+        salvaResponsavelEmpresa(maxid.rows[0].id,empr.responsavel);
+      });
       res.status(200).json({message: 'empresa criada!'});
     }).catch((error) => { 
       res.status(500).json({message: 'erro ao criar empresa!'+error});
@@ -88,22 +94,52 @@ async function criarEmpresa(empr,res){
   };
 };
 
+async function salvaResponsavelEmpresa(idEmpr,idRespon){
+  try{
+    const clientE = new Client(pgAuth);
+    clientE.connect();
+    let sql = "UPDATE responsaveis SET empresa_id=" + idEmpr + " WHERE id = "+ idRespon ;
+    await clientE.query(sql).then((resp) => {
+      clientE.end();
+    });
+  } catch (err) {
+    console.error(err);
+  };
+};
+
 async function criarLocal(loc,res){
   try{
-    console.log(JSON.stringify(loc))
     await salvaEndereco(loc).then((end_id) => {
       const client = new Client(pgAuth);
       client.connect();
       let sql = "INSERT INTO locais (nome,endereco_id,empresa_id,responsavel_id,usuario_id) VALUES ";
       sql += " ('"+  loc.nome +"',"+  end_id +","+  loc.empresa_id +","+  loc.responsavel_id +"";
       sql += " ,"+  loc.usuario_id +")";
-      console.log(sql)
       client.query(sql).then((resp) => {
         client.end();
+        const clientM = new Client(pgAuth);
+        clientM.connect();
+        clientM.query('SELECT MAX(id) as id FROM locais').then((maxid) => {
+          clientM.end();
+          salvaResponsavelLocal(maxid.rows[0].id ,loc.responsavel_id);
+        });
         res.status(200).json({message: 'Local criado!'});
       }).catch((error) => { 
         res.status(500).json({message: 'erro ao criar local!'+error});
       });
+    });
+  } catch (err) {
+    console.error(err);
+  };
+};
+
+async function salvaResponsavelLocal(idLocal,idRespon){
+  try{
+    const clientE = new Client(pgAuth);
+    clientE.connect();
+    let sql = "UPDATE responsaveis SET local_id=" + idLocal + " WHERE id = "+ idRespon ;
+    await clientE.query(sql).then((resp) => {
+      clientE.end();
     });
   } catch (err) {
     console.error(err);
@@ -121,6 +157,7 @@ async function salvaEndereco(ender){
     sql += " ,"+  ender.usuario_id +")"
 
     return await clientE.query(sql).then((resp) => {
+      clientE.end();
       const clientM = new Client(pgAuth);
       clientM.connect();
       return clientM.query('SELECT MAX(id) as id FROM enderecos').then((maxid) => {
@@ -172,7 +209,7 @@ async function listaEmpresas(usuarioId,res){
   try{
     const client = new Client(pgAuth);
     client.connect();
-    let sql = "SELECT e.id,r.nome as nome_responsavel,e.nome,e.cnpj ";
+    let sql = "SELECT e.id,r.nome as nome_responsavel,e.nome,e.cnpj, r.id as responsavel_id ";
     sql += " FROM responsaveis r INNER JOIN empresas e "; 
     sql += " ON e.responsavel_principal_id=r.id  "; 
     sql += " WHERE e.usuario_id = " + usuarioId + " ";
@@ -197,13 +234,12 @@ async function listaLocais(usuarioId,res){
   try{
     const client = new Client(pgAuth);
     client.connect();
-    let sql = "SELECT l.id, l.nome, r.nome as responsavel, e.nome as empresa ";
+    let sql = "SELECT l.id, l.nome, r.nome as responsavel, e.nome as empresa, l.empresa_id, l.responsavel_id ";
     sql += " FROM locais l INNER JOIN empresas e ON e.id=l.empresa_id "; 
     sql += " INNER JOIN enderecos en ON en.id=l.endereco_id "; 
     sql += " INNER JOIN responsaveis r ON r.id=l.responsavel_id "; 
     sql += " WHERE l.usuario_id = " + usuarioId + " ";
     sql += " ORDER BY l.nome ASC  "; 
-    //console.log(sql)
     await client.query(sql).then((resp) => {
       client.end();
       const locais = resp.rows;
@@ -225,8 +261,8 @@ async function listaResponsaveis(usuarioId,res){
     const client = new Client(pgAuth);
     client.connect();
     let sql = "SELECT r.id,r.nome,r.telefone,e.cep,e.logradouro,e.numero,";
-    sql += "e.bairro,e.municipio,e.uf FROM responsaveis r INNER JOIN enderecos e "; 
-    sql += " ON e.id=r.endereco_id  "; 
+    sql += "e.bairro,e.municipio,e.uf, r.empresa_id, r.local_id "; 
+    sql += " FROM responsaveis r INNER JOIN enderecos e ON e.id=r.endereco_id  "; 
     sql += " WHERE e.usuario_id = " + usuarioId + " ";
     sql += " ORDER BY r.nome ASC  "; 
     await client.query(sql).then((resp) => {
@@ -235,8 +271,7 @@ async function listaResponsaveis(usuarioId,res){
       if (responsaveis.length === 0){
         res.status(403).json({message: 'Nenhum responsável cadastrado.'});
       }else{
-        console.log(JSON.stringify(responsaveis));
-          res.status(200).json(responsaveis);
+        res.status(200).json(responsaveis);
       };
     }).catch((error) => { 
       res.status(500).json({message: 'erro no processo de consulta do responsável no DB! '+error});
@@ -246,4 +281,4 @@ async function listaResponsaveis(usuarioId,res){
   };
 };
 
-module.exports = {listaLocais,criarLocal,listaEmpresas,criarEmpresa,listaResponsaveis,criarResponsavel,validaSenhaHash,criarUsuario};
+module.exports = {salvaResponsavelLocal,salvaResponsavelEmpresa,listaLocais,criarLocal,listaEmpresas,criarEmpresa,listaResponsaveis,criarResponsavel,validaSenhaHash,criarUsuario};
