@@ -1,8 +1,8 @@
 
 module.exports =  {
-    user: 'postgres',
+    user: 'hublocaldbii',
     host: 'ec2-18-207-196-209.compute-1.amazonaws.com',
     database: 'hublocaldb',
-    password: '12345678',
+    password: '87654321',
     port: 5432,
   };
