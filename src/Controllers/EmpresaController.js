@@ -3,9 +3,9 @@
  exports.get = (req, res, next) => {
     let uid = req.query.usuario_id;
     (async () => {
-      const db = require("../db/db");
+      const serv = require("../Services/Empresas");
       try{
-          await db.listaEmpresas(uid,res);
+          await serv.listaEmpresas(uid,res);
       } catch (err) {
           res.status(500).json({message: 'erro ao chamar Model DB! '+err});
       }
@@ -15,9 +15,9 @@
  exports.post = (req, res, next) => {
     let empresa = req.body;
     (async () => {
-        const db = require("../db/db");
+        const serv = require("../Services/Empresas");
         try{
-            await db.criarEmpresa(empresa, res);
+            await serv.criarEmpresa(empresa, res);
         } catch (err) {
             console.error(err);
         }
